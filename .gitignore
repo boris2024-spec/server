@@ -4,6 +4,12 @@ dist/
 .env.local
 .env.production
 .env.development
+.env.example
+.env.vercel.example
+SIMPLE_FIX.md
 *.log
+QUICK_SETUP.md
 .DS_Store
+TIMEOUT_FIX.md
+VERCEL_TROUBLESHOOTING.md
 Thumbs.db
