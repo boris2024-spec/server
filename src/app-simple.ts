@@ -5,9 +5,26 @@ import nodemailer from "nodemailer";
 export const app = express();
 
 // CORS настройки
+const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://mdimona-cahnqf9ph-boris-projects-342aa06a.vercel.app"
+];
+
 app.use(cors({
-    origin: process.env.CLIENT_ORIGIN?.split(",") || "*",
-    credentials: false
+    origin: (origin, callback) => {
+        // Разрешить запросы без origin (например, мобильные приложения)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json({ limit: "200kb" }));
