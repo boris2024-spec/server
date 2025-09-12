@@ -71,6 +71,9 @@ const createTransporter = () => {
         host: SMTP_HOST,
         port: Number(SMTP_PORT || 465),
         secure: String(SMTP_SECURE || "true") === "true",
+        connectionTimeout: 60000, // 60 секунд
+        greetingTimeout: 30000,   // 30 секунд
+        socketTimeout: 60000,     // 60 секунд
         auth: {
             user: SMTP_USER,
             pass: SMTP_PASS
@@ -80,10 +83,20 @@ const createTransporter = () => {
 
 // Email эндпоинт
 app.post("/send-email", async (req, res) => {
+    const timeoutId = setTimeout(() => {
+        if (!res.headersSent) {
+            res.status(408).json({
+                ok: false,
+                error: "Request timeout"
+            });
+        }
+    }, 25000); // 25 секунд (меньше чем 30 сек лимит Vercel)
+
     try {
         const { to, subject, html, text } = req.body;
 
         if (!to || !subject || !html) {
+            clearTimeout(timeoutId);
             return res.status(400).json({
                 ok: false,
                 error: "Missing required fields: to, subject, html"
@@ -92,6 +105,7 @@ app.post("/send-email", async (req, res) => {
 
         // Проверяем наличие SMTP переменных
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+            clearTimeout(timeoutId);
             return res.status(503).json({
                 ok: false,
                 error: "Email service not configured. Missing SMTP credentials."
@@ -109,13 +123,19 @@ app.post("/send-email", async (req, res) => {
             text
         });
 
-        res.json({ ok: true });
+        clearTimeout(timeoutId);
+        if (!res.headersSent) {
+            res.json({ ok: true });
+        }
 
     } catch (error) {
+        clearTimeout(timeoutId);
         console.error("Send email error:", error);
-        res.status(500).json({
-            ok: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                ok: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
     }
 });
