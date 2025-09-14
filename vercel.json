@@ -11,5 +11,6 @@
             "src": "/(.*)",
             "dest": "./index.ts"
         }
-    ]
+    ],
+    "buildCommand": "npm install && node ./index.ts"
 }
