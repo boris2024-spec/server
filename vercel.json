@@ -1,21 +1,15 @@
 {
-    "functions": {
-        "api/**/*.ts": {
-            "maxDuration": 30
+    "version": 1,
+    "builds": [
+        {
+            "src": "index.js",
+            "use": "@vercel/node"
         }
-    },
+    ],
     "routes": [
         {
-            "src": "^/api/(.*)$",
-            "dest": "/api/index.ts"
-        },
-        {
-            "src": "^/health$",
-            "dest": "/api/index.ts"
-        },
-        {
-            "src": "^/send-email$",
-            "dest": "/api/index.ts"
+            "src": "/(.*)",
+            "dest": "index.js"
         }
     ]
 }
