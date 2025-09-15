@@ -1,4 +1,4 @@
-import { app } from "./app-simple";
+import { app } from "./app";
 
 // Local development server
 const port = Number(process.env.PORT ?? 3001);

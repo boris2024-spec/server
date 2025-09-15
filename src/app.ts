@@ -5,6 +5,7 @@ import helmet from "helmet";
 import { emailSchema } from "./validators.js";
 import { sendEmail } from "./mailer.js";
 import { sendEmailLimiter } from "./rateLimit.js";
+// import "./app-simple.js";
 
 export const app = express();
 
