@@ -11,6 +11,8 @@ const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://mdimona-cahnqf9ph-boris-projects-342aa06a.vercel.app"
+    
+
 ];
 
 app.use(cors({
