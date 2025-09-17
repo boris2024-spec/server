@@ -13,8 +13,16 @@ export const app = express();
 app.use(helmet());
 app.use(express.json({ limit: "200kb" }));
 app.use(cors({
-    origin: process.env.CLIENT_ORIGIN?.split(",") ?? "*",
-    credentials: false
+    origin: 'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Обработка preflight-запросов
+app.options('*', cors({
+    origin: 'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+    credentials: true,
 }));
 
 // Error handling middleware
