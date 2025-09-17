@@ -12,8 +12,19 @@ export const app = express();
 // Middleware
 app.use(helmet());
 app.use(express.json({ limit: "200kb" }));
+const allowedOrigins = [
+    'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+    'https://mdimona.vercel.app'
+];
+
 app.use(cors({
-    origin: 'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -21,7 +32,13 @@ app.use(cors({
 
 // Обработка preflight-запросов
 app.options('*', cors({
-    origin: 'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 
