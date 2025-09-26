@@ -16,8 +16,9 @@ const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
     
 ];
 
-app.use(cors({
-    origin: (origin, callback) => {
+// Задаём объект опций один раз и регистрируем его и для preflight (OPTIONS)
+const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Разрешить запросы без origin (например, мобильные приложения)
         if (!origin) return callback(null, true);
 
@@ -29,8 +30,15 @@ app.use(cors({
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // Возвращаем 204 для preflight — безопасно для браузеров
+    optionsSuccessStatus: 204,
+    preflightContinue: false
+};
+
+app.use(cors(corsOptions));
+// Явно обрабатываем preflight для всех путей
+app.options("*", cors(corsOptions));
 
 app.use(express.json({ limit: "200kb" }));
 

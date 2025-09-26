@@ -12,14 +12,22 @@ export const app = express();
 // Middleware
 app.use(helmet());
 app.use(express.json({ limit: "200kb" }));
-const allowedOrigins = [
+
+// Поддерживаем список origins из env или дефолты (включая localhost для разработки)
+const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
     'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
-    'https://dimonatuors.vercel.app'
+    'https://dimonatuors.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
 ];
 
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+// Универсальные опции CORS — используем и для middleware, и для preflight
+const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Разрешаем запросы без origin (например, curl, мобильные приложения, серверные вызовы)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -28,19 +36,13 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+    optionsSuccessStatus: 204,
+    preflightContinue: false
+};
 
-// Обработка preflight-запросов
-app.options('*', cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-}));
+app.use(cors(corsOptions));
+// Явно обрабатываем preflight для всех путей теми же опциями
+app.options('*', cors(corsOptions));
 
 // Error handling middleware
 app.use((err: any, _req: any, res: any, _next: any) => {
