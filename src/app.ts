@@ -14,7 +14,7 @@ app.use(helmet());
 app.use(express.json({ limit: "200kb" }));
 const allowedOrigins = [
     'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
-    'https://mdimona.vercel.app'
+    'https://dimonatuors.vercel.app'
 ];
 
 app.use(cors({
