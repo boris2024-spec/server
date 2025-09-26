@@ -5,6 +5,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const app = express();
+// Если приложение работает за прокси (Render, Heroku и т.п.), доверяем первому прокси
+// чтобы корректно получать исходный IP из X-Forwarded-For (нужно для express-rate-limit).
+app.set('trust proxy', 1);
 
 // CORS настройки
 const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [

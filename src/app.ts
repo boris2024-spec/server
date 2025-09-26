@@ -8,6 +8,10 @@ import { sendEmailLimiter } from "./rateLimit.js";
 // import "./app-simple.js";
 
 export const app = express();
+// Если приложение работает за прокси (Render, Heroku и т.п.),
+// нужно разрешить доверять заголовку X-Forwarded-For чтобы rate-limit корректно определял IP.
+// Устанавливаем 1 — доверяем первому прокси (обычно достаточно для PaaS).
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
