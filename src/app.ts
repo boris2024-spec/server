@@ -13,25 +13,28 @@ export const app = express();
 app.use(helmet());
 app.use(express.json({ limit: "200kb" }));
 
-// Поддерживаем список origins из env или дефолты (включая localhost для разработки)
-const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
-    'https://mdimona-git-master-boris-projects-342aa06a.vercel.app',
+// Поддерживаем список origins из env или дефолты (включая localhost для разработки).
+// Поддерживаем RegExp (например, превью Vercel) и очищаем пробелы в переменных окружения.
+const rawOrigins = process.env.CLIENT_ORIGIN?.split(",").map(s => s.trim()).filter(Boolean) || [
     'https://dimonatuors.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001'
 ];
 
+// Добавим полезный RegExp для всех preview-сайтов vercel (опционально)
+const allowedOrigins: (string | RegExp)[] = [
+    ...rawOrigins,
+    /^https:\/\/.*\.vercel\.app$/
+];
+
 // Универсальные опции CORS — используем и для middleware, и для preflight
 const corsOptions = {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-        // Разрешаем запросы без origin (например, curl, мобильные приложения, серверные вызовы)
+        // Разрешаем запросы без origin (например, curl, серверные вызовы)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
+        const ok = allowedOrigins.some(p => p instanceof RegExp ? p.test(origin) : p === origin);
+        callback(ok ? null : new Error('Not allowed by CORS'), ok);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -43,12 +46,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 // Явно обрабатываем preflight для всех путей теми же опциями
 app.options('*', cors(corsOptions));
-
-// Error handling middleware
-app.use((err: any, _req: any, res: any, _next: any) => {
-    console.error("Express error:", err);
-    res.status(500).json({ ok: false, error: err?.message ?? "Internal error" });
-});
 
 // Routes
 app.get("/health", (_, res) => res.json({ ok: true }));
@@ -92,4 +89,11 @@ app.post("/send-email", sendEmailLimiter, async (req, res) => {
         console.error("Send email error:", e);
         res.status(500).json({ ok: false, error: e?.message ?? "Send failed" });
     }
+});
+
+// Error handling middleware (после маршрутов чтобы ловить ошибки корректно)
+app.use((err: any, _req: any, res: any, _next: any) => {
+    console.error("Express error:", err);
+    // Гарантируем, что даже при ошибке CORS-headers уже установлены cors-мидлварой
+    res.status(500).json({ ok: false, error: err?.message ?? "Internal error" });
 });
