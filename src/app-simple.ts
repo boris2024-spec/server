@@ -10,10 +10,10 @@ export const app = express();
 const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://mdimona-cahnqf9ph-boris-projects-342aa06a.vercel.app",
+    
+    "https://mdimona-1zpxcjm82-boris-projects-342aa06a.vercel.app",
     "https://dimonatuors.vercel.app"
     
-
 ];
 
 app.use(cors({
