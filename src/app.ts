@@ -91,6 +91,11 @@ app.post("/send-email", sendEmailLimiter, async (req, res) => {
         res.json({ ok: true });
     } catch (e: any) {
         console.error("Send email error:", e);
+        // Сетевые/SMTP таймауты и ошибки подключения возвращаем как 502 (bad gateway)
+        const networkCodes = ['ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED', 'ECONNRESET', 'ECONNRESET', 'ECONNRESET', 'ECONNECTION'];
+        if (e && (e.code && networkCodes.includes(String(e.code)))) {
+            return res.status(502).json({ ok: false, error: 'SMTP connection failed or timed out', code: e.code });
+        }
         res.status(500).json({ ok: false, error: e?.message ?? "Send failed" });
     }
 });
@@ -100,4 +105,30 @@ app.use((err: any, _req: any, res: any, _next: any) => {
     console.error("Express error:", err);
     // Гарантируем, что даже при ошибке CORS-headers уже установлены cors-мидлварой
     res.status(500).json({ ok: false, error: err?.message ?? "Internal error" });
+});
+
+// Диагностический endpoint: проверяет возможность TCP-подключения к SMTP серверу
+app.get('/diag-smtp', async (_req, res) => {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT ?? 465);
+    if (!host) return res.status(400).json({ ok: false, error: 'SMTP_HOST not set' });
+
+    const net = await import('net');
+    const socket = new net.Socket();
+    let handled = false;
+
+    const timeout = Number(process.env.SMTP_CONNECTION_TIMEOUT ?? 10000);
+
+    const cleanup = (ok: boolean, msg: string) => {
+        if (handled) return;
+        handled = true;
+        socket.destroy();
+        res.json({ ok, host, port, message: msg });
+    };
+
+    socket.setTimeout(timeout, () => cleanup(false, 'timeout'));
+    socket.once('error', (err: any) => cleanup(false, `error: ${err?.message || err}`));
+    socket.once('connect', () => cleanup(true, 'connected'));
+
+    socket.connect({ host, port });
 });

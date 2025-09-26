@@ -11,14 +11,26 @@ export const createTransporter = () => {
     throw new Error("SMTP credentials are missing. Please set SMTP_USER and SMTP_PASS environment variables.");
   }
 
+  // Таймауты и отладка можно настраивать через env переменные
+  const connectionTimeout = Number(process.env.SMTP_CONNECTION_TIMEOUT ?? 120000); // ms
+  const greetingTimeout = Number(process.env.SMTP_GREETING_TIMEOUT ?? 60000); // ms
+  const socketTimeout = Number(process.env.SMTP_SOCKET_TIMEOUT ?? 120000); // ms
+
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT ?? 465),
     secure: String(SMTP_SECURE ?? "true") === "true",
+    connectionTimeout,
+    greetingTimeout,
+    socketTimeout,
+    logger: process.env.NODE_ENV !== 'production',
+    debug: process.env.NODE_ENV !== 'production',
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS
     }
+    // При необходимости можно добавить tls: { rejectUnauthorized: false }
+    // если почтовый сервер использует самоподписанные сертификаты (не рекомендовано в проде).
   });
 };
 
@@ -70,12 +82,23 @@ export async function sendEmail(
 ) {
   const { MAIL_FROM, SMTP_USER } = process.env;
   const mailerTransporter = getTransporter();
-
-  return mailerTransporter.sendMail({
-    from: MAIL_FROM || SMTP_USER,
-    to,
-    subject,
-    html,
-    text
-  });
+  try {
+    return await mailerTransporter.sendMail({
+      from: MAIL_FROM || SMTP_USER,
+      to,
+      subject,
+      html,
+      text
+    });
+  } catch (err: any) {
+    // Улучшаем читаемость ошибок, чтобы фронтенд и логи ясно видели ETIMEDOUT
+    console.error('Send email error:', err);
+    if (err && (err.code === 'ETIMEDOUT' || err.code === 'ECONNECTION')) {
+      const e = new Error('SMTP connection timeout or network error');
+      // @ts-ignore attach code for potential upstream handlers
+      e['code'] = err.code;
+      throw e;
+    }
+    throw err;
+  }
 }
